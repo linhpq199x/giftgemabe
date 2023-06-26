@@ -1,6 +1,6 @@
 -- Script config
 local Discord_Webhook = "https://discord.com/api/webhooks/1119233080830480424/m53yMFy9S2A-DXnvzq8DigQqHNkQm6fS70R17oTHKJMUyodHmGOZjQttO1pYa5Omk4lo"
-local Request_Delay = 40
+local Request_Delay = 60
 
 -- Wait for game fully loaded
 repeat wait(1)
