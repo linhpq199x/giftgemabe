@@ -1,0 +1,176 @@
+-- Script config
+local Discord_Webhook = "https://discord.com/api/webhooks/1119233080830480424/m53yMFy9S2A-DXnvzq8DigQqHNkQm6fS70R17oTHKJMUyodHmGOZjQttO1pYa5Omk4lo"
+local Request_Delay = 40
+
+-- Wait for game fully loaded
+repeat wait(1)
+until game:IsLoaded()
+and game.Players.LocalPlayer
+and game.Players.LocalPlayer:FindFirstChild("leaderstats")
+
+local plr = game.Players.LocalPlayer
+
+if true then
+    local LoadingCount = tick()
+    repeat wait(1)
+        pcall(function()
+            for i, v in ipairs(getconnections(plr.PlayerGui["__INTRO"].Frame.Skip.MouseButton1Up)) do
+                v.Function()
+            end
+        end)
+        pcall(function()
+            if tick() - LoadingCount > 60 or plr.PlayerGui["__INTRO"].Frame.Notice.Visible then 
+                game:Shutdown()
+                wait(10)
+            end
+        end)
+    until not plr.PlayerGui:FindFirstChild("__INTRO")
+    repeat wait(1)
+    until plr.PlayerGui:FindFirstChild("Loading")
+    and not plr.PlayerGui:FindFirstChild("Loading").Enabled
+    and plr:FindFirstChild("__LOADED") and plr["__LOADED"].Value
+end
+
+-- Variables
+local L_Client = require(game.ReplicatedStorage.Library.Client)
+local shortNumber = require(game.ReplicatedStorage.Framework.Library).Functions.NumberShorten
+local HttpService = game:GetService("HttpService")
+local U_Request = syn and syn.request or http_request or request or false
+if not U_Request then print("Exploit has no request function") end
+
+-- Bypass
+debug.setupvalue(L_Client.Network.Invoke, 1, function() return true end)
+local vu = game:GetService("VirtualUser")
+plr.Idled:Connect(function()
+    vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+    wait(1)
+    vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
+
+-- Boost FPS
+local Lighting = game:GetService("Lighting")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+sethiddenproperty(Terrain, "Decoration", false)
+sethiddenproperty(game.Lighting, "Technology", 0)
+settings().Rendering.QualityLevel = 1
+Lighting.Brightness = 0
+game:GetService("RunService"):Set3dRenderingEnabled(false)
+
+-- Functions
+function format(num, digits)
+	return string.format("%0" .. digits .. "i", num)
+end
+function parseDateTime()
+	local osDate = os.date("!*t")
+	local year, mon, day = osDate["year"], osDate["month"], osDate["day"]
+	local hour, min, sec = osDate["hour"], osDate["min"], osDate["sec"]
+	return year .. "-" .. format(mon, 2) .. "-" .. format(day, 2) .. "T" .. format(hour, 2) .. ":" .. format(min, 2) .. ":" .. format(sec, 2) .. "Z"
+end
+function Send_Webhook(Color, Status, Message)
+    U_Request({
+        Url = Discord_Webhook,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode({
+            ["embeds"] = {{
+                ["color"] = tonumber(Color),
+                ["title"] = Status,
+                ["fields"] = Message,
+                ["timestamp"] = parseDateTime(),
+                ["footer"] = {
+                    ["icon_url"] = "https://cdn.discordapp.com/attachments/1119207646688456758/1119220037195157504/Jp_HJDAQArQnGCPdBcyIkvmqoxcWWfq81QQx0J516-nQm4S498aj5YFfyXEQ0j_6h3aeUF8TCAs176-c-k-c0x00ffffff-no-rj.png",
+                    ["text"] = "https://bidaithanroblox.com - Auto Gem Order"
+                }
+            }}
+        })
+    })
+end
+function Update_Order(OrderID, Status)
+    U_Request({
+        Url = "https://bidaithanroblox.com/transaction/fgsdfsdf?action=update&id=" .. OrderID .. "&status=" .. tostring(Status),
+        Method = "GET",
+    }) 
+end
+
+-- Get Mailbox
+getsenv(plr.PlayerScripts.Scripts.GUIs.Teleport).Teleport("Spawn", true)
+repeat wait()
+until game.workspace.__MAP.Interactive:FindFirstChild("Mailbox")
+local MailboxPad = game.workspace.__MAP.Interactive.Mailbox.Pad
+
+-- Auto Gem Order
+
+while wait(1) do
+
+    pcall(function()
+        if not MailboxPad then
+            MailboxPad = game.workspace.__MAP.Interactive.Mailbox.Pad
+        end
+        if plr:DistanceFromCharacter(MailboxPad.Position) > 7 then
+            plr.Character.HumanoidRootPart.CFrame = MailboxPad.CFrame
+            wait(3)
+        end
+    end)
+
+    pcall(function()
+        local Response = U_Request({
+            Url = "https://bidaithanroblox.com/transaction/fgsdfsdf?action=check&name=chitgaialime", 
+            Method = "GET",
+        })
+    
+        local R_Split = string.split(Response.Body, "|")
+        local OrderID, RobloxUsername, DiamondsAmount = R_Split[1], R_Split[2], tonumber(R_Split[3])
+        if OrderID and RobloxUsername and DiamondsAmount and plr.leaderstats.Diamonds.Value - 100000 >= DiamondsAmount then
+            local _, SendMail_Failed 
+            local _, Error_Occurred = pcall(function()
+                _, SendMail_Failed = L_Client.Network.Invoke("Send Mail", {
+                    Recipient = RobloxUsername, 
+                    Message = OrderID .. " - bidaithanroblox.com", 
+                    Pets = {}, 
+                    Diamonds = DiamondsAmount,
+                })
+            end)
+            wait(5)
+            local AccInfo = "Tên: " .. plr.Name .. " (" .. shortNumber(plr.leaderstats.Diamonds.Value) .. ")"
+            local GuestInfo = "Tên khách: ".. RobloxUsername .. "\nID dơn: " .. OrderID .. "\n Số Diamond: " .. shortNumber(DiamondsAmount)
+            print(Error_Occurred, SendMail_Failed)
+            if Error_Occurred or SendMail_Failed then
+                -- Deny Order
+                Update_Order(OrderID, 2)
+                wait(1)
+                Send_Webhook(0xFF0000, "Failed", {
+                    {
+                        ["name"] = "Thông tin acc",
+                        ["value"] = AccInfo,
+                        ["inline"] = false,
+                    },
+                    {
+                        ["name"] = "Thông tin khách",
+                        ["value"] = GuestInfo,
+                        ["inline"] = false,
+                    },
+                })
+            else
+                 -- Complete Order 
+                Update_Order(OrderID, 0)
+                wait(1)
+                Send_Webhook(0x00FF44, "Completed", {
+                    {
+                        ["name"] = "Thông tin acc",
+                        ["value"] = AccInfo,
+                        ["inline"] = false,
+                    },
+                    {
+                        ["name"] = "Thông tin khách",
+                        ["value"] = GuestInfo,
+                        ["inline"] = false,
+                    },
+                })
+            end
+        end
+    end)
+    
+    wait(Request_Delay)
+end
